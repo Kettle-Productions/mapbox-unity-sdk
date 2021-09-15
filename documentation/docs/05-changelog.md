@@ -5,7 +5,6 @@
 - Fix a bug where vector tile processing fired multiple times depending on Terrain/Image data states
 - Fix bug that caused ScriptableCreatorWindow to throw ArgumentException: GUILayout: Mismatched LayoutGroup.repaint in some environments.
 - Fix IndexOutOfRangeException when clicking on Map tile in editor due to empty Height Data.
-
 ### Improvements
 - Improves Directions factory and prefabs to provide better UX and support for all types of maps
 - OnPoolItem is now called for all GoModifiers in the MergedModifierStack.
