@@ -64,6 +64,11 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 				_counter = _activeObjects[tile].Count;
 				for (int i = 0; i < _counter; i++)
 				{
+					//TODO Added this bit, to call on pool items for MergedModifierStack
+					foreach (var item in GoModifiers)
+					{
+						item.OnPoolItem(_activeObjects[tile][i]);
+					}
 					if (null != _activeObjects[tile][i].GameObject)
 					{
 						_activeObjects[tile][i].GameObject.SetActive(false);

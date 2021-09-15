@@ -6,6 +6,7 @@
 - Fix IndexOutOfRangeException when clicking on Map tile in editor due to empty Height Data.
 ### Improvements
 - Improves Directions factory and prefabs to provide better UX and support for all types of maps
+- OnPoolItem is now called for all GoModifiers in the MergedModifierStack.
 
 ### v2.1.1
 10/15/2019
