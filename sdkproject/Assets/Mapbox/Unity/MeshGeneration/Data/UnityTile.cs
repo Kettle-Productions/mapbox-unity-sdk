@@ -327,7 +327,7 @@ namespace Mapbox.Unity.MeshGeneration.Data
 		/// <returns></returns>
 		public float QueryHeightData(float x, float y)
 		{
-			if (HeightData != null)
+			if (HeightData != null && HeightData.Length > 0)
 			{
 				return HeightData[(int)(Mathf.Clamp01(y) * 255) * 256 + (int)(Mathf.Clamp01(x) * 255)] * _tileScale;
 			}
@@ -345,7 +345,7 @@ namespace Mapbox.Unity.MeshGeneration.Data
 		/// <returns></returns>
 		public float QueryHeightDataNonclamped(float x, float y)
 		{
-			if (HeightData != null)
+			if (HeightData != null && HeightData.Length > 0)
 			{
 				return HeightData[(int)(y * 255) * 256 + (int)(x * 255)] * _tileScale;
 			}
