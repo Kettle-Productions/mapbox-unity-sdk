@@ -170,6 +170,11 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 				for (int i = 0; i < _counter; i++)
 				{
 					_temp2MeshData = _cached[tile][i];
+					
+					//skip bad feature meshes
+					if (!SanitizeMeshData(_temp2MeshData))
+						continue;
+					
 					if (_temp2MeshData.Vertices.Count <= 3)
 						continue;
 
@@ -287,6 +292,36 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 			_pool.Clear();
 			_activeObjects.Clear();
 			_pool.Clear();
+		}
+		
+		/// <summary>
+		/// Sanitizes the mesh data by checking for non-finite vertex coordinates.
+		/// <para>If any vertex has non-finite coordinates (NaN or Infinity), it clears the vertices, triangles, normals, and UVs of the MeshData.</para>
+		/// </summary>
+		/// <param name="meshData"></param>
+		/// <returns>True if mesh data is valid, false if it was invalid and sanitized.</returns>
+		static bool SanitizeMeshData(MeshData meshData)
+		{
+			var verts = meshData?.Vertices;
+			if (verts == null)
+			{
+				return true;
+			}
+			for (var i = 0; i < verts.Count; i++)
+			{
+				var v = verts[i];
+				if (float.IsFinite(v.x) && float.IsFinite(v.y) && float.IsFinite(v.z))
+				{
+					continue;
+				}
+				// Nuke this feature so caller can skip it
+				verts.Clear();
+				meshData.Triangles?.Clear();
+				meshData.Normals?.Clear();
+				meshData.UV?.Clear();
+				return false;
+			}
+			return true;
 		}
 	}
 }
