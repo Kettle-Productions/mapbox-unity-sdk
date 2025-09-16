@@ -125,6 +125,16 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 
 					_currentVertex = roadSegment[i];
 
+					//check if the vector to next point is effectively zero, if so skip this iteration
+					if (_nextVertex != Constants.Math.Vector3Unused)
+					{
+						var seg = _nextVertex - _currentVertex;
+						if (seg.sqrMagnitude < 1e-8f)
+						{
+							continue;
+						}
+					}
+					
 					_nextNormal = (_nextVertex != Constants.Math.Vector3Unused)
 						? (_nextVertex - _currentVertex).normalized.Perpendicular()
 						: _prevNormal;
@@ -134,8 +144,7 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 						_prevNormal = _nextNormal;
 					}
 
-					var joinNormal = (_prevNormal + _nextNormal).normalized;
-
+					
 					/*  joinNormal     prevNormal
 					 *             ↖      ↑
 					 *                .________. prevVertex
@@ -145,9 +154,43 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 					 *     nextVertex !
 					 *
 					 */
+					const float EPS = 1e-6f;
+					static Vector3 SafeNorm(Vector3 v) => v.sqrMagnitude > 1e-12f ? v.normalized : Vector3.zero;
 
+					// normalize defensively (prevents unstable sums/normalizations)
+					_prevNormal = SafeNorm(_prevNormal);
+					_nextNormal = SafeNorm(_nextNormal);
+
+					// if either normal vanished, fall back to a simple bevel/flat handling later
+					var normalsWeak = (_prevNormal == Vector3.zero) || (_nextNormal == Vector3.zero);
+
+					// sum normals to get the bisector (join normal), safely
+					var joinNormal = SafeNorm(_prevNormal + _nextNormal);
+
+					// cos(half-angle) between join and next
 					var cosHalfAngle = joinNormal.x * _nextNormal.x + joinNormal.z * _nextNormal.z;
-					var miterLength = cosHalfAngle != 0 ? 1 / cosHalfAngle : float.PositiveInfinity;
+
+					// guard tiny/invalid cos to avoid 1/0 → inf/NaN
+					var badCos = !float.IsFinite(cosHalfAngle) || Mathf.Abs(cosHalfAngle) < EPS;
+					var miterLength = 1f;
+
+					// decide a provisional join BEFORE the original logic below
+					var middleVertex = _prevVertex != Constants.Math.Vector3Unused && _nextVertex != Constants.Math.Vector3Unused;
+					var currentJoin = middleVertex ? _options.JoinType : _options.CapType;
+
+					// if we have bad data, we can't do a proper miter, so fall back to bevel
+					// also, if the normals are weak, we can't trust the miter length calculation
+					// so we also fall back to bevel
+					if (normalsWeak || badCos)
+					{
+						// keep cap type on endpoints
+						currentJoin = middleVertex ? JoinType.Bevel : currentJoin;
+						miterLength = 1f;
+					}
+					else
+					{
+						miterLength = 1f / cosHalfAngle; // safe now
+					}
 					var isSharpCorner = cosHalfAngle < _cosHalfSharpCorner && _prevVertex != Constants.Math.Vector3Unused && _nextVertex != Constants.Math.Vector3Unused;
 
 					if (isSharpCorner && i > 0)
@@ -162,9 +205,6 @@ namespace Mapbox.Unity.MeshGeneration.Modifiers
 							_prevVertex = newPrevVertex;
 						}
 					}
-
-					var middleVertex = _prevVertex != Constants.Math.Vector3Unused && _nextVertex != Constants.Math.Vector3Unused;
-					var currentJoin = middleVertex ? _options.JoinType : _options.CapType;
 
 					if (middleVertex && currentJoin == JoinType.Round)
 					{
